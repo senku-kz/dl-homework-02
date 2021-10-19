@@ -1,1 +1,9 @@
 /.ipynb_checkpoints/
+/test/
+/train/
+/valid/
+/Delete-*.ipynb
+/logs/
+
+*.model
+*.param
