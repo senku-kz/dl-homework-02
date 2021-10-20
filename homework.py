@@ -25,9 +25,8 @@ import tensorboard
 from MIDataset import MIDataset
 
 
-# train_data = './train'
-# valid_data = './valid'
-# test_data = './test'
+epochs = 10
+batch_size = 8
 
 
 def task_01_a():
@@ -122,19 +121,16 @@ def task_02():
     """
     Train any CNN model
     """
-    epochs = 20
-    batch_size = 16
+    # epochs = 20
+    # batch_size = 16
     learning_rate = 0.01
-
-    writer = SummaryWriter(log_dir='logs/googlenet')
 
     train, test, valid = preprocess()
     transform = transforms.Compose([
         transforms.ToPILImage('RGB'),
-        # transforms.ToPILImage('F'),
         transforms.Resize([224, 224]),
         transforms.ToTensor(),
-        # transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
 
     # ===============Train
@@ -153,59 +149,6 @@ def task_02():
     model_accuracy = googlenet_test(model_trained, test_dataloader)
     print(model_accuracy)
     save_model(model_trained, train_ds, 'GoogLeNet', model_accuracy)
-
-    # googLeNet_model = torchvision.models.googlenet(init_weights=True)
-    #
-    # device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    # googLeNet_model.to(device)
-    #
-    # # criterion = nn.MSELoss()  # squared error
-    # criterion = nn.CrossEntropyLoss()
-    # optimizer = torch.optim.SGD(googLeNet_model.parameters(), lr=learning_rate, momentum=0.9)
-    #
-    # start = time.time()
-    # for epoch in range(epochs):  # loop over the dataset multiple times
-    #     print(epoch, '=' * 50)
-    #     for i, data in enumerate(train_dataloader, 0):
-    #         # get the inputs; data is a list of [inputs, labels]
-    #         inputs, labels = data
-    #         inputs, labels = inputs.to(device), labels.to(device)
-    #
-    #         outputs = googLeNet_model(inputs)
-    #         # print(outputs[0])
-    #
-    #         # zero the parameter gradients
-    #         optimizer.zero_grad()
-    #
-    #         # forward + backward + optimize
-    #         # print('=======', outputs[0].shape, labels.shape, '======')
-    #         loss = criterion(outputs[0], labels)
-    #         loss.backward()
-    #         optimizer.step()
-    #         #
-    #         if i % 3 == 0:
-    #             print('Loss:', round(loss.item(), 2), 'From:', (i + 1) * batch_size)
-    #
-    # print('Finished Training')
-    # end = time.time()
-    # print('Training time:', end - start)
-    #
-    # # ===============Test
-    # total, correct = 0, 0
-    # with torch.no_grad():
-    #     for images, labels in test_dataloader:
-    #         images, labels = images.to(device), labels.to(device)
-    #         outputs = googLeNet_model(images)
-    #         # the class with the highest energy is what we choose as prediction
-    #         _, predicted = torch.max(outputs[0], 1)
-    #         total += labels.size(0)
-    #         correct += (predicted == labels).sum().item()
-    #         print('label:', labels[0], 'predicted', predicted[0])
-    #
-    # accuracy_total = 100 * correct / total
-    # print('Accuracy is %d%%, the number of correct/total: %d/%d' % (accuracy_total, correct, total))
-    #
-    # save_model(googLeNet_model, train_ds, 'GoogLeNet', accuracy_total)
 
 
 def googlenet_train(dataloader, learning_rate=0.01, batch_size=16, epochs=20):
@@ -283,8 +226,8 @@ def task_03():
     Plot the graph showing the accuracy on a test set with different values of learning rate.
     Learning rate values should be 0.1, 0.01, 0.001.
     """
-    epochs = 20
-    batch_size = 16
+    # epochs = 20
+    # batch_size = 16
     learning_rates = [0.1, 0.01, 0.001]
 
     train, test, valid = preprocess()
@@ -393,8 +336,8 @@ def task_04():
     """
     Choose any 3 variants of CNN architecture and compare their accuracy.
     """
-    epochs = 10
-    batch_size = 8
+    # epochs = 10
+    # batch_size = 8
     learning_rates = 0.001
 
     train, test, valid = preprocess()
