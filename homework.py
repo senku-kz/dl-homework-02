@@ -2,31 +2,21 @@ import random
 import time
 from datetime import datetime
 
-import numpy as np
-import pandas as pd
-
-import torch
-from torch import nn
-from torch.utils.data import Dataset
-from torch.utils.data import DataLoader
-from torch.utils.tensorboard import SummaryWriter
-
-import torchvision
-from torchvision import datasets
-from torchvision.io import read_image
-from torchvision.transforms import ToTensor, Lambda, Compose
-from torchvision import datasets, transforms
-
-from sklearn.model_selection import KFold
-import matplotlib.pyplot as plt
 import matplotlib.image as img
-import tensorboard
+import matplotlib.pyplot as plt
+import pandas as pd
+import torch
+import torchvision
+from torch import nn
+from torch.utils.data import DataLoader
+from torchvision import transforms
 
 from MIDataset import MIDataset
 
 
 epochs = 10
 batch_size = 8
+prod = False
 
 
 def task_01_a():
@@ -126,6 +116,8 @@ def task_02():
     learning_rate = 0.01
 
     train, test, valid = preprocess()
+    train_size = len(train) if prod else 128
+
     transform = transforms.Compose([
         transforms.ToPILImage('RGB'),
         transforms.Resize([224, 224]),
@@ -135,11 +127,8 @@ def task_02():
 
     # ===============Train
     # train_ds = MIDataset(32, 0, transform=transform)
-    train_ds = MIDataset(len(train), 0, transform=transform)
+    train_ds = MIDataset(train_size, 0, transform=transform)
     train_dataloader = DataLoader(train_ds, batch_size=batch_size, shuffle=True, )
-
-    # train_size = len(train)
-    train_size = 128
 
     test_ds = MIDataset(len(test), 1, transform=transform)
     test_dataloader = DataLoader(test_ds, batch_size=batch_size, shuffle=True, )
@@ -221,6 +210,48 @@ def save_model(model, dataset, name='CNN', accuracy=''):
     torch.save(model, file_name_2)
 
 
+def googlenet_train_with_accuracy(dataloader_train, dataloader_test, learning_rate=0.01, batch_size=16, epochs=20):
+    mini_batch = 10
+    accuracies = []
+    googLeNet_model = torchvision.models.googlenet(init_weights=True)
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    googLeNet_model.to(device)
+
+    # criterion = nn.MSELoss()  # squared error
+    criterion = nn.CrossEntropyLoss()
+    optimizer = torch.optim.SGD(googLeNet_model.parameters(), lr=learning_rate, momentum=0.9)
+
+    start = time.time()
+    for epoch in range(epochs):  # loop over the dataset multiple times
+        print(epoch+1, '=' * 50)
+        running_loss = 0.0
+        for i, data in enumerate(dataloader_train, 0):
+            # get the inputs; data is a list of [inputs, labels]
+            inputs, labels = data
+            inputs, labels = inputs.to(device), labels.to(device)
+
+            # zero the parameter gradients
+            optimizer.zero_grad()
+
+            # forward + backward + optimize
+            outputs = googLeNet_model(inputs)
+            loss = criterion(outputs[0], labels)
+            loss.backward()
+            optimizer.step()
+            #
+            running_loss += loss.item()
+            if i % mini_batch == mini_batch - 1:  # print every batches
+                print('[epoch %2d, i %5d] loss: %.3f' % (epoch + 1, i + 1, round(running_loss / batch_size, 2)))
+                running_loss = 0.0
+
+        accuracy = round(googlenet_test(googLeNet_model, dataloader_test)[0], 2)
+        accuracies.append(accuracy)
+    print('Finished Training')
+    end = time.time()
+    print('Training time:', end - start)
+    return accuracies
+
+
 def task_03():
     """
     Plot the graph showing the accuracy on a test set with different values of learning rate.
@@ -231,16 +262,13 @@ def task_03():
     learning_rates = [0.1, 0.01, 0.001]
 
     train, test, valid = preprocess()
-
-    # train_size = len(train)
-    train_size = 128
+    train_size = len(train) if prod else 128
 
     transform = transforms.Compose([
         transforms.ToPILImage('RGB'),
-        # transforms.ToPILImage('F'),
         transforms.Resize([224, 224]),
         transforms.ToTensor(),
-        # transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
 
     train_ds = MIDataset(train_size, 0, transform=transform)
@@ -250,14 +278,19 @@ def task_03():
     test_dataloader = DataLoader(test_ds, batch_size=batch_size, shuffle=True, )
     lst_accuracy = []
     for learning_rate in learning_rates:
-        learned_model = googlenet_train(train_dataloader, learning_rate=learning_rate, batch_size=batch_size,
-                                        epochs=epochs)
-        accuracy_model = googlenet_test(learned_model, test_dataloader)
-        # print(accuracy_model)
-        save_model(learned_model, train_ds, 'GoogLeNet-' + learning_rate.__str__(), accuracy_model[0])
-
+        accuracy_model = googlenet_train_with_accuracy(train_dataloader, test_dataloader, learning_rate=learning_rate,
+                                                       batch_size=batch_size, epochs=epochs)
         lst_accuracy.append(accuracy_model)
-    print(lst_accuracy)
+
+    x_epochs = range(1, epochs+1)
+    plt.plot(x_epochs, lst_accuracy[0], 'r', label='Learning rate = '+learning_rates[0].__str__())
+    plt.plot(x_epochs, lst_accuracy[1], 'g', label='Learning rate = '+learning_rates[1].__str__())
+    plt.plot(x_epochs, lst_accuracy[2], 'b', label='Learning rate = '+learning_rates[2].__str__())
+    plt.title('Effect of various learning rates')
+    plt.xlabel('Epochs')
+    plt.ylabel('Accuracy, %')
+    plt.legend()
+    plt.show()
 
 
 def three_models_train(dataloader, learning_rate=0.01, batch_size=16, epochs=20):
@@ -341,9 +374,7 @@ def task_04():
     learning_rates = 0.001
 
     train, test, valid = preprocess()
-
-    # train_size = len(train)
-    train_size = 128
+    train_size = len(train) if prod else 128
 
     transform = transforms.Compose([
         transforms.ToPILImage('RGB'),
@@ -370,6 +401,6 @@ if __name__ == "__main__":
     # task_01_a()
     # task_01_b()
     # task_01_c()
-    task_02()
-    # task_03()
+    # task_02()
+    task_03()
     # task_04()
