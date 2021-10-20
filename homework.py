@@ -142,72 +142,74 @@ def task_02():
     train_ds = MIDataset(len(train), 0, transform=transform)
     train_dataloader = DataLoader(train_ds, batch_size=batch_size, shuffle=True, )
 
+    # train_size = len(train)
+    train_size = 128
+
     test_ds = MIDataset(len(test), 1, transform=transform)
     test_dataloader = DataLoader(test_ds, batch_size=batch_size, shuffle=True, )
 
-    # for X, y in train_dataloader:
-    #     print("Shape of X [N, C, H, W]: ", X.shape)
-    #     print("Shape of y: ", y.shape, y.dtype)
+    model_trained = googlenet_train(train_dataloader, learning_rate, batch_size, epochs)
+    print('='*50)
+    model_accuracy = googlenet_test(model_trained, test_dataloader)
+    print(model_accuracy)
+    save_model(model_trained, train_ds, 'GoogLeNet', model_accuracy)
 
-    # resnet18 = torchvision.models.resnet18()
-    # alexnet = torchvision.models.alexnet()
-    # vgg19 = torchvision.models.vgg19_bn()
-    googLeNet_model = torchvision.models.googlenet(init_weights=True)
-    # googLeNet_model.eval()
-
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    googLeNet_model.to(device)
-
-    # criterion = nn.MSELoss()  # squared error
-    criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.SGD(googLeNet_model.parameters(), lr=learning_rate, momentum=0.9)
-
-    start = time.time()
-    for epoch in range(epochs):  # loop over the dataset multiple times
-        print(epoch, '=' * 50)
-        for i, data in enumerate(train_dataloader, 0):
-            # get the inputs; data is a list of [inputs, labels]
-            inputs, labels = data
-            inputs, labels = inputs.to(device), labels.to(device)
-
-            outputs = googLeNet_model(inputs)
-            # print(outputs[0])
-
-            # zero the parameter gradients
-            optimizer.zero_grad()
-
-            # forward + backward + optimize
-            # print('=======', outputs[0].shape, labels.shape, '======')
-            loss = criterion(outputs[0], labels)
-            loss.backward()
-            optimizer.step()
-            #
-            if i % 3 == 0:
-                print('Loss:', round(loss.item(), 2), 'From:', (i + 1) * batch_size)
-
-    print('Finished Training')
-    end = time.time()
-    print('Training time:', end - start)
-
-    # ===============Test
-    total, correct = 0, 0
-    with torch.no_grad():
-        for images, labels in test_dataloader:
-            images, labels = images.to(device), labels.to(device)
-            outputs = googLeNet_model(images)
-            # the class with the highest energy is what we choose as prediction
-            _, predicted = torch.max(outputs[0], 1)
-            total += labels.size(0)
-            correct += (predicted == labels).sum().item()
-            print('label:', labels[0], 'predicted', predicted[0])
-
-    accuracy_total = 100 * correct / total
-    print('Accuracy is %d%%, the number of correct/total: %d/%d' % (accuracy_total, correct, total))
-
-    save_model(googLeNet_model, train_ds, 'GoogLeNet', accuracy_total)
+    # googLeNet_model = torchvision.models.googlenet(init_weights=True)
+    #
+    # device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    # googLeNet_model.to(device)
+    #
+    # # criterion = nn.MSELoss()  # squared error
+    # criterion = nn.CrossEntropyLoss()
+    # optimizer = torch.optim.SGD(googLeNet_model.parameters(), lr=learning_rate, momentum=0.9)
+    #
+    # start = time.time()
+    # for epoch in range(epochs):  # loop over the dataset multiple times
+    #     print(epoch, '=' * 50)
+    #     for i, data in enumerate(train_dataloader, 0):
+    #         # get the inputs; data is a list of [inputs, labels]
+    #         inputs, labels = data
+    #         inputs, labels = inputs.to(device), labels.to(device)
+    #
+    #         outputs = googLeNet_model(inputs)
+    #         # print(outputs[0])
+    #
+    #         # zero the parameter gradients
+    #         optimizer.zero_grad()
+    #
+    #         # forward + backward + optimize
+    #         # print('=======', outputs[0].shape, labels.shape, '======')
+    #         loss = criterion(outputs[0], labels)
+    #         loss.backward()
+    #         optimizer.step()
+    #         #
+    #         if i % 3 == 0:
+    #             print('Loss:', round(loss.item(), 2), 'From:', (i + 1) * batch_size)
+    #
+    # print('Finished Training')
+    # end = time.time()
+    # print('Training time:', end - start)
+    #
+    # # ===============Test
+    # total, correct = 0, 0
+    # with torch.no_grad():
+    #     for images, labels in test_dataloader:
+    #         images, labels = images.to(device), labels.to(device)
+    #         outputs = googLeNet_model(images)
+    #         # the class with the highest energy is what we choose as prediction
+    #         _, predicted = torch.max(outputs[0], 1)
+    #         total += labels.size(0)
+    #         correct += (predicted == labels).sum().item()
+    #         print('label:', labels[0], 'predicted', predicted[0])
+    #
+    # accuracy_total = 100 * correct / total
+    # print('Accuracy is %d%%, the number of correct/total: %d/%d' % (accuracy_total, correct, total))
+    #
+    # save_model(googLeNet_model, train_ds, 'GoogLeNet', accuracy_total)
 
 
 def googlenet_train(dataloader, learning_rate=0.01, batch_size=16, epochs=20):
+    mini_batch = 10
     googLeNet_model = torchvision.models.googlenet(init_weights=True)
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     googLeNet_model.to(device)
@@ -218,26 +220,30 @@ def googlenet_train(dataloader, learning_rate=0.01, batch_size=16, epochs=20):
 
     start = time.time()
     for epoch in range(epochs):  # loop over the dataset multiple times
-        print(epoch, '=' * 50)
+        print(epoch+1, '=' * 50)
+        running_loss = 0.0
         for i, data in enumerate(dataloader, 0):
             # get the inputs; data is a list of [inputs, labels]
             inputs, labels = data
             inputs, labels = inputs.to(device), labels.to(device)
 
-            outputs = googLeNet_model(inputs)
-            # print(outputs[0])
-
             # zero the parameter gradients
             optimizer.zero_grad()
 
             # forward + backward + optimize
+            outputs = googLeNet_model(inputs)
             # print('=======', outputs[0].shape, labels.shape, '======')
             loss = criterion(outputs[0], labels)
             loss.backward()
             optimizer.step()
             #
-            if i % 3 == 0:
-                print('Loss:', round(loss.item(), 2), 'From:', (i + 1) * batch_size)
+            running_loss += loss.item()
+            if i % mini_batch == mini_batch - 1:  # print every batches
+                print('[epoch %2d, i %5d] loss: %.3f' % (epoch + 1, i + 1, round(running_loss / batch_size, 2)))
+                running_loss = 0.0
+
+            # if i % 3 == 0:
+            #     print('Loss:', round(loss.item(), 2), 'From:', (i + 1) * batch_size)
 
     print('Finished Training')
     end = time.time()
@@ -257,11 +263,11 @@ def googlenet_test(googlenet_model, dataloader):
             _, predicted = torch.max(outputs[0], 1)
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
-            print('label:', labels[0], 'predicted', predicted[0])
+            # print('label:', labels[0], 'predicted', predicted[0])
 
-    accuracy_total = 100 * correct / total
-    print('Accuracy is %d%%, the number of correct/total: %d/%d' % (accuracy_total, correct, total))
-    return accuracy_total, correct, total
+    accuracy_percent = 100 * correct / total
+    print('Accuracy is %d%%, the number of correct/total: %d/%d' % (accuracy_percent, correct, total))
+    return accuracy_percent, correct, total
 
 
 def save_model(model, dataset, name='CNN', accuracy=''):
@@ -282,6 +288,10 @@ def task_03():
     learning_rates = [0.1, 0.01, 0.001]
 
     train, test, valid = preprocess()
+
+    # train_size = len(train)
+    train_size = 128
+
     transform = transforms.Compose([
         transforms.ToPILImage('RGB'),
         # transforms.ToPILImage('F'),
@@ -290,20 +300,127 @@ def task_03():
         # transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
 
-    train_ds = MIDataset(len(train), 0, transform=transform)
+    train_ds = MIDataset(train_size, 0, transform=transform)
     train_dataloader = DataLoader(train_ds, batch_size=batch_size, shuffle=True, )
 
     test_ds = MIDataset(len(test), 1, transform=transform)
     test_dataloader = DataLoader(test_ds, batch_size=batch_size, shuffle=True, )
     lst_accuracy = []
     for learning_rate in learning_rates:
-        learned_model = googlenet_train(train_ds, learning_rate=learning_rate, batch_size=batch_size, epochs=epochs)
-        accuracy_model = googlenet_test(learned_model, test_ds)
+        learned_model = googlenet_train(train_dataloader, learning_rate=learning_rate, batch_size=batch_size,
+                                        epochs=epochs)
+        accuracy_model = googlenet_test(learned_model, test_dataloader)
         # print(accuracy_model)
-        save_model(learned_model, train_ds, 'GoogLeNet-'+learning_rate, accuracy_model[0])
+        save_model(learned_model, train_ds, 'GoogLeNet-' + learning_rate.__str__(), accuracy_model[0])
 
         lst_accuracy.append(accuracy_model)
     print(lst_accuracy)
+
+
+def three_models_train(dataloader, learning_rate=0.01, batch_size=16, epochs=20):
+    alexNet_model = torchvision.models.AlexNet()
+    resnet_model = torchvision.models.resnet18()
+    denseNet_model = torchvision.models.densenet121()
+
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
+    models = [alexNet_model, resnet_model, denseNet_model]
+    models_trained = []
+
+    mini_batch = 10
+    for model in models:
+        # criterion = nn.MSELoss()  # squared error
+        model.to(device)
+        criterion = nn.CrossEntropyLoss()
+        optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9)
+
+        start = time.time()
+        for epoch in range(epochs):  # loop over the dataset multiple times
+            print(epoch+1, '=' * 50)
+            running_loss = 0.0
+            for i, data in enumerate(dataloader, 0):
+                # get the inputs; data is a list of [inputs, labels]
+                inputs, labels = data
+                inputs, labels = inputs.to(device), labels.to(device)
+
+                # zero the parameter gradients
+                optimizer.zero_grad()
+
+                # forward + backward + optimize
+                outputs = model(inputs)
+                loss = criterion(outputs, labels)
+                loss.backward()
+                optimizer.step()
+
+                torch.cuda.empty_cache()
+                del inputs, labels
+
+                running_loss += loss.item()
+                if i % mini_batch == mini_batch - 1:  # print every batches
+                    print('[epoch %2d, i %5d] loss: %.3f' % (epoch + 1, i + 1, round(running_loss / batch_size, 2)))
+                    running_loss = 0.0
+
+        print('Finished Training')
+        end = time.time()
+        print('Training time:', end - start)
+        models_trained.append(model)
+    return models_trained
+
+
+def three_models_test(models, dataloader):
+    accuracy = []
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    for t_model in models:
+        t_model.to(device)
+        total, correct = 0, 0
+        with torch.no_grad():
+            for images, labels in dataloader:
+                images, labels = images.to(device), labels.to(device)
+                outputs = t_model(images)
+                # the class with the highest energy is what we choose as prediction
+                _, predicted = torch.max(outputs, 1)
+                total += labels.size(0)
+                correct += (predicted == labels).sum().item()
+                # print('label:', labels[0], 'predicted', predicted[0])
+
+        accuracy_percent = 100 * correct / total
+        print('Accuracy is %d%%, the number of correct/total: %d/%d' % (accuracy_percent, correct, total))
+        accuracy.append((accuracy_percent, correct, total,))
+    return accuracy
+
+
+def task_04():
+    """
+    Choose any 3 variants of CNN architecture and compare their accuracy.
+    """
+    epochs = 10
+    batch_size = 8
+    learning_rates = 0.001
+
+    train, test, valid = preprocess()
+
+    # train_size = len(train)
+    train_size = 128
+
+    transform = transforms.Compose([
+        transforms.ToPILImage('RGB'),
+        # transforms.ToPILImage('F'),
+        transforms.Resize([224, 224]),
+        transforms.ToTensor(),
+        # transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+    ])
+
+    train_ds = MIDataset(train_size, 0, transform=transform)
+    train_dataloader = DataLoader(train_ds, batch_size=batch_size, shuffle=True, )
+
+    test_ds = MIDataset(len(test), 1, transform=transform)
+    test_dataloader = DataLoader(test_ds, batch_size=batch_size, shuffle=True, )
+    lst_accuracy = []
+    # print(len(train_dataloader))
+    models_trained = three_models_train(train_dataloader, learning_rates, batch_size, epochs)
+    print('='*50)
+    models_accuracy = three_models_test(models_trained, test_dataloader)
+    print(models_accuracy)
 
 
 if __name__ == "__main__":
@@ -311,3 +428,5 @@ if __name__ == "__main__":
     # task_01_b()
     # task_01_c()
     task_02()
+    # task_03()
+    # task_04()
