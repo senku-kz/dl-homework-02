@@ -13,10 +13,9 @@ from torchvision import transforms
 
 from MIDataset import MIDataset
 
-
-epochs = 10
+epochs = 20
 batch_size = 8
-prod = False
+prod = True
 
 
 def task_01_a():
@@ -126,7 +125,7 @@ def task_02():
     ])
 
     # ===============Train
-    # train_ds = MIDataset(32, 0, transform=transform)
+    print('Epochs:%d \t Train size: %d \t Batch size: %d' % (epochs, train_size, batch_size,))
     train_ds = MIDataset(train_size, 0, transform=transform)
     train_dataloader = DataLoader(train_ds, batch_size=batch_size, shuffle=True, )
 
@@ -134,10 +133,10 @@ def task_02():
     test_dataloader = DataLoader(test_ds, batch_size=batch_size, shuffle=True, )
 
     model_trained = googlenet_train(train_dataloader, learning_rate, batch_size, epochs)
-    print('='*50)
+    print('=' * 50)
     model_accuracy = googlenet_test(model_trained, test_dataloader)
     print(model_accuracy)
-    save_model(model_trained, train_ds, 'GoogLeNet', model_accuracy)
+    save_model(model_trained, train_ds, 'GoogLeNet', model_accuracy[0])
 
 
 def googlenet_train(dataloader, learning_rate=0.01, batch_size=16, epochs=20):
@@ -152,7 +151,7 @@ def googlenet_train(dataloader, learning_rate=0.01, batch_size=16, epochs=20):
 
     start = time.time()
     for epoch in range(epochs):  # loop over the dataset multiple times
-        print(epoch+1, '=' * 50)
+        print(epoch + 1, '=' * 50)
         running_loss = 0.0
         for i, data in enumerate(dataloader, 0):
             # get the inputs; data is a list of [inputs, labels]
@@ -171,7 +170,7 @@ def googlenet_train(dataloader, learning_rate=0.01, batch_size=16, epochs=20):
             #
             running_loss += loss.item()
             if i % mini_batch == mini_batch - 1:  # print every batches
-                print('[epoch %2d, i %5d] loss: %.3f' % (epoch + 1, i + 1, round(running_loss / batch_size, 2)))
+                print('\t[epoch %2d, i %3d] loss: %.3f' % (epoch + 1, i + 1, round(running_loss / batch_size, 2)))
                 running_loss = 0.0
 
             # if i % 3 == 0:
@@ -223,7 +222,7 @@ def googlenet_train_with_accuracy(dataloader_train, dataloader_test, learning_ra
 
     start = time.time()
     for epoch in range(epochs):  # loop over the dataset multiple times
-        print(epoch+1, '=' * 50)
+        print(epoch + 1, '=' * 50)
         running_loss = 0.0
         for i, data in enumerate(dataloader_train, 0):
             # get the inputs; data is a list of [inputs, labels]
@@ -241,7 +240,7 @@ def googlenet_train_with_accuracy(dataloader_train, dataloader_test, learning_ra
             #
             running_loss += loss.item()
             if i % mini_batch == mini_batch - 1:  # print every batches
-                print('[epoch %2d, i %5d] loss: %.3f' % (epoch + 1, i + 1, round(running_loss / batch_size, 2)))
+                print('\t[epoch %2d, i %5d] loss: %.3f' % (epoch + 1, i + 1, round(running_loss / batch_size, 2)))
                 running_loss = 0.0
 
         accuracy = round(googlenet_test(googLeNet_model, dataloader_test)[0], 2)
@@ -271,6 +270,7 @@ def task_03():
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
 
+    print('Epochs:%d \t Train size: %d \t Batch size: %d' % (epochs, train_size, batch_size,))
     train_ds = MIDataset(train_size, 0, transform=transform)
     train_dataloader = DataLoader(train_ds, batch_size=batch_size, shuffle=True, )
 
@@ -282,10 +282,12 @@ def task_03():
                                                        batch_size=batch_size, epochs=epochs)
         lst_accuracy.append(accuracy_model)
 
-    x_epochs = range(1, epochs+1)
-    plt.plot(x_epochs, lst_accuracy[0], 'r', label='Learning rate = '+learning_rates[0].__str__())
-    plt.plot(x_epochs, lst_accuracy[1], 'g', label='Learning rate = '+learning_rates[1].__str__())
-    plt.plot(x_epochs, lst_accuracy[2], 'b', label='Learning rate = '+learning_rates[2].__str__())
+    x_epochs = range(1, epochs + 1)
+    fig = plt.figure()
+    fig.set_size_inches(10, 10)
+    plt.plot(x_epochs, lst_accuracy[0], 'r', label='Learning rate = ' + learning_rates[0].__str__())
+    plt.plot(x_epochs, lst_accuracy[1], 'g', label='Learning rate = ' + learning_rates[1].__str__())
+    plt.plot(x_epochs, lst_accuracy[2], 'b', label='Learning rate = ' + learning_rates[2].__str__())
     plt.title('Effect of various learning rates')
     plt.xlabel('Epochs')
     plt.ylabel('Accuracy, %')
@@ -312,7 +314,7 @@ def three_models_train(dataloader, learning_rate=0.01, batch_size=16, epochs=20)
 
         start = time.time()
         for epoch in range(epochs):  # loop over the dataset multiple times
-            print(epoch+1, '=' * 50)
+            print(epoch + 1, '=' * 50)
             running_loss = 0.0
             for i, data in enumerate(dataloader, 0):
                 # get the inputs; data is a list of [inputs, labels]
@@ -333,7 +335,7 @@ def three_models_train(dataloader, learning_rate=0.01, batch_size=16, epochs=20)
 
                 running_loss += loss.item()
                 if i % mini_batch == mini_batch - 1:  # print every batches
-                    print('[epoch %2d, i %5d] loss: %.3f' % (epoch + 1, i + 1, round(running_loss / batch_size, 2)))
+                    print('\t[epoch %2d, i %3d] loss: %.3f' % (epoch + 1, i + 1, round(running_loss / batch_size, 2)))
                     running_loss = 0.0
 
         print('Finished Training')
@@ -384,6 +386,7 @@ def task_04():
         # transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
 
+    print('Epochs:%d \t Train size: %d \t Batch size: %d' % (epochs, train_size, batch_size,))
     train_ds = MIDataset(train_size, 0, transform=transform)
     train_dataloader = DataLoader(train_ds, batch_size=batch_size, shuffle=True, )
 
@@ -392,9 +395,15 @@ def task_04():
     lst_accuracy = []
     # print(len(train_dataloader))
     models_trained = three_models_train(train_dataloader, learning_rates, batch_size, epochs)
-    print('='*50)
+    print('=' * 50)
     models_accuracy = three_models_test(models_trained, test_dataloader)
-    print(models_accuracy)
+    # print(models_accuracy)
+
+    print('*' * 50)
+    print('\tAlexNet accuracy (%%):\t%d' % round(models_accuracy[0][0], 2))
+    print('\tResNet accuracy (%%):\t%d' % round(models_accuracy[1][0], 2))
+    print('\tDenseNet accuracy (%%):\t%d' % round(models_accuracy[2][0], 2))
+    print('*' * 50)
 
 
 if __name__ == "__main__":
@@ -402,5 +411,5 @@ if __name__ == "__main__":
     # task_01_b()
     # task_01_c()
     # task_02()
-    task_03()
-    # task_04()
+    # task_03()
+    task_04()
